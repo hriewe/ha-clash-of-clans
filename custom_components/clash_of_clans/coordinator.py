@@ -1,6 +1,8 @@
 from datetime import timedelta
 import logging
 
+import aiohttp
+
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -15,6 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 class ClashOfClansCoordinator(DataUpdateCoordinator):
     """Coordinator for Clash of Clans data."""
 
+
     def __init__(self, hass, entry):
         self.api = ClashOfClansApi(entry.data[CONF_API_TOKEN])
         self.player_tag = entry.data[CONF_PLAYER_TAG]
@@ -26,12 +29,24 @@ class ClashOfClansCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(minutes=5),
         )
 
+
     async def _async_update_data(self):
         """Fetch data from Clash of Clans API."""
         try:
             player = await self.api.get_player(self.player_tag)
+
+            war = None
+            clan_tag = player.get("clan", {}).get("tag")
+            if clan_tag:
+                try:
+                    war = await self.api.get_current_war(clan_tag)
+                except aiohttp.ClientResponseError as err:
+                    if err.status != 404:
+                        raise
+
             return {
-                "player": player
+                "player": player,
+                "war": war,
             }
         except Exception as err:
             raise UpdateFailed(f"Error fetching Clash of Clans data: {err}") from err

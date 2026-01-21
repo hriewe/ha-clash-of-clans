@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
@@ -17,6 +19,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             ClashPlayerExperienceLevelSensor(coordinator),
             ClashPlayerDonationsSensor(coordinator),
             ClashPlayerDonationsReceivedSensor(coordinator),
+            ClashCurrentWarEndTimeSensor(coordinator),
         ]
     )
 
@@ -40,6 +43,19 @@ class ClashPlayerBaseSensor(CoordinatorEntity, SensorEntity):
             manufacturer="Supercell",
             model="Clash of Clans",
         )
+
+    @property
+    def _war(self):
+        return self.coordinator.data.get("war") or {}
+
+    def _parse_coc_time(self, value: str | None):
+        if not value:
+            return None
+
+        try:
+            return datetime.strptime(value, "%Y%m%dT%H%M%S.%fZ").replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None
 
 
 class ClashPlayerInfoSensor(ClashPlayerBaseSensor):
@@ -147,3 +163,17 @@ class ClashPlayerDonationsReceivedSensor(ClashPlayerBaseSensor):
     @property
     def native_value(self):
         return self._player.get("donationsReceived")
+
+
+class ClashCurrentWarEndTimeSensor(ClashPlayerBaseSensor):
+    _attr_name = "Current War End Time"
+    _attr_icon = "mdi:flag-checkered"
+    _attr_device_class = "timestamp"
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.player_tag}_current_war_end_time"
+
+    @property
+    def native_value(self):
+        return self._parse_coc_time(self._war.get("endTime"))

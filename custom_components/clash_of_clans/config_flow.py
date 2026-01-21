@@ -1,7 +1,7 @@
 from homeassistant import config_entries
 import voluptuous as vol
 
-from .const import DOMAIN, CONF_API_TOKEN, CONF_PLAYER_TAG, CONF_CLAN_TAG
+from .const import DOMAIN, CONF_API_TOKEN, CONF_PLAYER_TAG
 from .api import ClashOfClansApi
 
 
@@ -38,7 +38,6 @@ class ClashOfClansConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_API_TOKEN): str,
                     vol.Required(CONF_PLAYER_TAG): str,
-                    vol.Required(CONF_CLAN_TAG): str,
                 }
             ),
             errors=errors,
