@@ -20,10 +20,12 @@ class ClashOfClansCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass, entry):
         self.api = ClashOfClansApi(entry.data[CONF_API_TOKEN])
-        self.player_tags = entry.data.get(
-            CONF_PLAYER_TAGS,
-            [entry.data[CONF_PLAYER_TAG]],
-        )
+        player_tags = entry.data.get(CONF_PLAYER_TAGS)
+        if player_tags is None:
+            player_tag = entry.data.get(CONF_PLAYER_TAG)
+            player_tags = [player_tag] if player_tag else []
+
+        self.player_tags = [t for t in player_tags if t]
 
         super().__init__(
             hass,
