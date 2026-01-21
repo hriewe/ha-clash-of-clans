@@ -21,7 +21,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 ClashPlayerExperienceLevelSensor(coordinator, player_tag),
                 ClashPlayerDonationsSensor(coordinator, player_tag),
                 ClashPlayerDonationsReceivedSensor(coordinator, player_tag),
+                ClashCurrentWarAttacksRemainingSensor(coordinator, player_tag),
                 ClashCurrentWarEndTimeSensor(coordinator, player_tag),
+                ClashCurrentWarStartTimeSensor(coordinator, player_tag),
+                ClashCurrentWarStateSensor(coordinator, player_tag),
             ]
         )
 
@@ -172,6 +175,43 @@ class ClashPlayerDonationsReceivedSensor(ClashPlayerBaseSensor):
         return self._player.get("donationsReceived")
 
 
+class ClashCurrentWarAttacksRemainingSensor(ClashPlayerBaseSensor):
+    _attr_name = "War Attacks Remaining"
+    _attr_icon = "mdi:sword-cross"
+
+    def __init__(self, coordinator, player_tag: str):
+        super().__init__(coordinator, player_tag)
+        self._attr_unique_id = f"{DOMAIN}_{player_tag}_war_attacks_remaining"
+
+    @property
+    def native_value(self):
+        if self._war.get("state") != "inWar":
+            return None
+
+        attacks_per_member = self._war.get("attacksPerMember")
+        if not isinstance(attacks_per_member, int):
+            return None
+
+        members = self._war.get("clan", {}).get("members", [])
+        if not isinstance(members, list):
+            return None
+
+        member = next((m for m in members if m.get("tag") == self._player_tag), None)
+        if not member:
+            return None
+
+        completed_attacks = member.get("attacks")
+        if completed_attacks is None:
+            completed_count = 0
+        elif isinstance(completed_attacks, list):
+            completed_count = len(completed_attacks)
+        else:
+            return None
+
+        remaining = attacks_per_member - completed_count
+        return max(0, remaining)
+
+
 class ClashCurrentWarEndTimeSensor(ClashPlayerBaseSensor):
     _attr_name = "Current War End Time"
     _attr_icon = "mdi:flag-checkered"
@@ -184,3 +224,28 @@ class ClashCurrentWarEndTimeSensor(ClashPlayerBaseSensor):
     @property
     def native_value(self):
         return self._parse_coc_time(self._war.get("endTime"))
+
+class ClashCurrentWarStartTimeSensor(ClashPlayerBaseSensor):
+    _attr_name = "Current War Start Time"
+    _attr_icon = "mdi:calendar-clock"
+    _attr_device_class = "timestamp"
+
+    def __init__(self, coordinator, player_tag: str):
+        super().__init__(coordinator, player_tag)
+        self._attr_unique_id = f"{DOMAIN}_{player_tag}_current_war_start_time"
+
+    @property
+    def native_value(self):
+        return self._parse_coc_time(self._war.get("startTime"))
+
+class ClashCurrentWarStateSensor(ClashPlayerBaseSensor):
+    _attr_name = "Current War State"
+    _attr_icon = "mdi:sword"
+
+    def __init__(self, coordinator, player_tag: str):
+        super().__init__(coordinator, player_tag)
+        self._attr_unique_id = f"{DOMAIN}_{player_tag}_current_war_state"
+
+    @property
+    def native_value(self):
+        return self._war.get("state")
