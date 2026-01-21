@@ -10,12 +10,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     async_add_entities(
         [
+            ClashPlayerInfoSensor(coordinator),
             ClashPlayerTrophiesSensor(coordinator),
-            ClashPlayerBestTrophiesSensor(coordinator),
             ClashPlayerTownHallLevelSensor(coordinator),
             ClashPlayerBuilderHallLevelSensor(coordinator),
             ClashPlayerExperienceLevelSensor(coordinator),
-            ClashPlayerWarStarsSensor(coordinator),
             ClashPlayerDonationsSensor(coordinator),
             ClashPlayerDonationsReceivedSensor(coordinator),
         ]
@@ -55,7 +54,7 @@ class ClashPlayerInfoSensor(ClashPlayerBaseSensor):
 
     @property
     def native_value(self):
-        return self.coordinator.data["player"]["name"]
+        return self._player.get("name")
     
     @property
     def extra_state_attributes(self):
@@ -83,7 +82,7 @@ class ClashPlayerTrophiesSensor(ClashPlayerBaseSensor):
 
     @property
     def native_value(self):
-        return self.coordinator.data["player"]["trophies"]
+        return self._player.get("trophies")
 
 class ClashPlayerTownHallLevelSensor(ClashPlayerBaseSensor):
     _attr_name = "Town Hall Level"
