@@ -51,7 +51,7 @@ class ClashOfClansCoordinator(DataUpdateCoordinator):
                     try:
                         war = await self.api.get_current_war(clan_tag)
                     except aiohttp.ClientResponseError as err:
-                        if err.status != 404:
+                        if err.status not in (403, 404):
                             raise
 
                 wars[player_tag] = war
