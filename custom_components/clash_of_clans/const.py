@@ -1,0 +1,1 @@
+DOMAIN = "clash_of_clans"

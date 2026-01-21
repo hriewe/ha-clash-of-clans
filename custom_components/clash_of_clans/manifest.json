@@ -1,0 +1,10 @@
+{
+  "domain": "clash_of_clans",
+  "name": "Clash of Clans",
+  "version": "0.1.0",
+  "config_flow": true,
+  "documentation": "https://github.com/hriewe/ha-clash-of-clans",
+  "issue_tracker": "https://github.com/hriewe/ha-clash-of-clans/issues",
+  "codeowners": ["@hriewe"],
+  "iot_class": "cloud_polling"
+}
