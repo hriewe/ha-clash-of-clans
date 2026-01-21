@@ -21,6 +21,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 ClashPlayerExperienceLevelSensor(coordinator, player_tag),
                 ClashPlayerDonationsSensor(coordinator, player_tag),
                 ClashPlayerDonationsReceivedSensor(coordinator, player_tag),
+                ClashTroopProgressionSensor(coordinator, player_tag),
+                ClashSpellProgressionSensor(coordinator, player_tag),
+                ClashHeroProgressionSensor(coordinator, player_tag),
                 ClashCurrentWarAttacksRemainingSensor(coordinator, player_tag),
                 ClashCurrentWarEndTimeSensor(coordinator, player_tag),
                 ClashCurrentWarStartTimeSensor(coordinator, player_tag),
@@ -66,6 +69,51 @@ class ClashPlayerBaseSensor(CoordinatorEntity, SensorEntity):
             return datetime.strptime(value, "%Y%m%dT%H%M%S.%fZ").replace(tzinfo=timezone.utc)
         except ValueError:
             return None
+
+    def _progression(self, key: str, *, village: str | None = "home"):
+        items = self._player.get(key, [])
+        if not isinstance(items, list):
+            return None, {}
+
+        current_total = 0
+        max_total = 0
+        item_count = 0
+        maxed_count = 0
+
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            if village is not None and item.get("village") != village:
+                continue
+
+            level = item.get("level")
+            max_level = item.get("maxLevel")
+            if not isinstance(level, int) or not isinstance(max_level, int) or max_level <= 0:
+                continue
+
+            item_count += 1
+            current_total += level
+            max_total += max_level
+            if level >= max_level:
+                maxed_count += 1
+
+        if max_total <= 0 or item_count == 0:
+            return None, {
+                "village": village,
+                "items": item_count,
+                "items_maxed": maxed_count,
+                "current_total": current_total,
+                "max_total": max_total,
+            }
+
+        percent = (current_total / max_total) * 100
+        return round(percent, 2), {
+            "village": village,
+            "items": item_count,
+            "items_maxed": maxed_count,
+            "current_total": current_total,
+            "max_total": max_total,
+        }
 
 
 class ClashPlayerInfoSensor(ClashPlayerBaseSensor):
@@ -173,6 +221,69 @@ class ClashPlayerDonationsReceivedSensor(ClashPlayerBaseSensor):
     @property
     def native_value(self):
         return self._player.get("donationsReceived")
+
+
+class ClashTroopProgressionSensor(ClashPlayerBaseSensor):
+    _attr_name = "Troop Progression"
+    _attr_icon = "mdi:sword"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = "measurement"
+
+    def __init__(self, coordinator, player_tag: str):
+        super().__init__(coordinator, player_tag)
+        self._attr_unique_id = f"{DOMAIN}_{player_tag}_troop_progression"
+
+    @property
+    def native_value(self):
+        value, _attrs = self._progression("troops", village="home")
+        return value
+
+    @property
+    def extra_state_attributes(self):
+        _value, attrs = self._progression("troops", village="home")
+        return attrs
+
+
+class ClashSpellProgressionSensor(ClashPlayerBaseSensor):
+    _attr_name = "Spell Progression"
+    _attr_icon = "mdi:magic-staff"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = "measurement"
+
+    def __init__(self, coordinator, player_tag: str):
+        super().__init__(coordinator, player_tag)
+        self._attr_unique_id = f"{DOMAIN}_{player_tag}_spell_progression"
+
+    @property
+    def native_value(self):
+        value, _attrs = self._progression("spells", village="home")
+        return value
+
+    @property
+    def extra_state_attributes(self):
+        _value, attrs = self._progression("spells", village="home")
+        return attrs
+
+
+class ClashHeroProgressionSensor(ClashPlayerBaseSensor):
+    _attr_name = "Hero Progression"
+    _attr_icon = "mdi:shield-sword"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = "measurement"
+
+    def __init__(self, coordinator, player_tag: str):
+        super().__init__(coordinator, player_tag)
+        self._attr_unique_id = f"{DOMAIN}_{player_tag}_hero_progression"
+
+    @property
+    def native_value(self):
+        value, _attrs = self._progression("heroes", village="home")
+        return value
+
+    @property
+    def extra_state_attributes(self):
+        _value, attrs = self._progression("heroes", village="home")
+        return attrs
 
 
 class ClashCurrentWarAttacksRemainingSensor(ClashPlayerBaseSensor):
