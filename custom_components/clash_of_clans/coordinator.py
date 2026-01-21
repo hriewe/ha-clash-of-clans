@@ -9,7 +9,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .api import ClashOfClansApi
-from .const import DOMAIN, CONF_API_TOKEN, CONF_PLAYER_TAG
+from .const import DOMAIN, CONF_API_TOKEN, CONF_PLAYER_TAG, CONF_PLAYER_TAGS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +20,10 @@ class ClashOfClansCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass, entry):
         self.api = ClashOfClansApi(entry.data[CONF_API_TOKEN])
-        self.player_tag = entry.data[CONF_PLAYER_TAG]
+        self.player_tags = entry.data.get(
+            CONF_PLAYER_TAGS,
+            [entry.data[CONF_PLAYER_TAG]],
+        )
 
         super().__init__(
             hass,
@@ -33,20 +36,27 @@ class ClashOfClansCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data from Clash of Clans API."""
         try:
-            player = await self.api.get_player(self.player_tag)
+            players: dict[str, dict] = {}
+            wars: dict[str, dict | None] = {}
 
-            war = None
-            clan_tag = player.get("clan", {}).get("tag")
-            if clan_tag:
-                try:
-                    war = await self.api.get_current_war(clan_tag)
-                except aiohttp.ClientResponseError as err:
-                    if err.status != 404:
-                        raise
+            for player_tag in self.player_tags:
+                player = await self.api.get_player(player_tag)
+                players[player_tag] = player
+
+                war = None
+                clan_tag = player.get("clan", {}).get("tag")
+                if clan_tag:
+                    try:
+                        war = await self.api.get_current_war(clan_tag)
+                    except aiohttp.ClientResponseError as err:
+                        if err.status != 404:
+                            raise
+
+                wars[player_tag] = war
 
             return {
-                "player": player,
-                "war": war,
+                "players": players,
+                "wars": wars,
             }
         except Exception as err:
             raise UpdateFailed(f"Error fetching Clash of Clans data: {err}") from err
