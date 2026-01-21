@@ -70,7 +70,14 @@ class ClashPlayerBaseSensor(CoordinatorEntity, SensorEntity):
         except ValueError:
             return None
 
-    def _progression(self, key: str, *, village: str | None = "home"):
+    def _progression(
+        self,
+        key: str,
+        *,
+        village: str | None = "home",
+        exclude_names: set[str] | None = None,
+        exclude_name_contains: set[str] | None = None,
+    ):
         items = self._player.get(key, [])
         if not isinstance(items, list):
             return None, {}
@@ -85,6 +92,14 @@ class ClashPlayerBaseSensor(CoordinatorEntity, SensorEntity):
                 continue
             if village is not None and item.get("village") != village:
                 continue
+
+            name = item.get("name")
+            if isinstance(name, str):
+                name_lower = name.lower()
+                if exclude_names and name_lower in exclude_names:
+                    continue
+                if exclude_name_contains and any(s in name_lower for s in exclude_name_contains):
+                    continue
 
             level = item.get("level")
             max_level = item.get("maxLevel")
@@ -137,7 +152,6 @@ class ClashPlayerInfoSensor(ClashPlayerBaseSensor):
         return {
             "league": player.get("leagueTier", {}).get("name"),
             "best_trophies": player.get("bestTrophies"),
-            "builder_hall": player.get("builderHallLevel"),
             "experience_level": player.get("expLevel"),
             "clan_capital_contributions": player.get("clanCapitalContributions"),
             "clan_tag": player.get("clan", {}).get("tag"),
@@ -224,7 +238,7 @@ class ClashPlayerDonationsReceivedSensor(ClashPlayerBaseSensor):
 
 
 class ClashTroopProgressionSensor(ClashPlayerBaseSensor):
-    _attr_name = "Troop Progression"
+    _attr_name = "Troop/Pet Progression"
     _attr_icon = "mdi:sword"
     _attr_native_unit_of_measurement = "%"
     _attr_state_class = "measurement"
@@ -235,12 +249,34 @@ class ClashTroopProgressionSensor(ClashPlayerBaseSensor):
 
     @property
     def native_value(self):
-        value, _attrs = self._progression("troops", village="home")
+        exclude_names = {
+            "ice hound",
+            "inferno dragon",
+            "rocket balloon",
+            "sneaky goblin",
+        }
+        value, _attrs = self._progression(
+            "troops",
+            village="home",
+            exclude_names=exclude_names,
+            exclude_name_contains={"super"},
+        )
         return value
 
     @property
     def extra_state_attributes(self):
-        _value, attrs = self._progression("troops", village="home")
+        exclude_names = {
+            "ice hound",
+            "inferno dragon",
+            "rocket balloon",
+            "sneaky goblin",
+        }
+        _value, attrs = self._progression(
+            "troops",
+            village="home",
+            exclude_names=exclude_names,
+            exclude_name_contains={"super"},
+        )
         return attrs
 
 
