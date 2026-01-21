@@ -1,5 +1,4 @@
 from homeassistant import config_entries
-from homeassistant.exceptions import HomeAssistantError
 import voluptuous as vol
 
 from .const import DOMAIN, CONF_API_TOKEN, CONF_PLAYER_TAG, CONF_CLAN_TAG
@@ -14,10 +13,11 @@ class ClashOfClansConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         errors = {}
 
-        await self.async_set_unique_id(user_input[CONF_PLAYER_TAG])
-self._abort_if_unique_id_configured()
-
         if user_input is not None:
+            # Prevent duplicates
+            await self.async_set_unique_id(user_input[CONF_PLAYER_TAG])
+            self._abort_if_unique_id_configured()
+
             api = ClashOfClansApi(user_input[CONF_API_TOKEN])
 
             try:
