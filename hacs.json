@@ -4,5 +4,6 @@
   "domain": "clash_of_clans",
   "documentation": "https://github.com/hriewe/ha-clash-of-clans",
   "country": ["US"],
+  "render_readme": true,
   "iot_class": "cloud_polling"
 }
