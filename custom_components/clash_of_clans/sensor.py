@@ -61,6 +61,14 @@ class ClashPlayerBaseSensor(CoordinatorEntity, SensorEntity):
     def _war(self):
         return self.coordinator.data.get("wars", {}).get(self._player_tag) or {}
 
+    @property
+    def extra_state_attributes(self):
+        player_name = self._player.get("name")
+        return {
+            "player_tag": self._player_tag,
+            "player_name": player_name,
+        }
+
     def _parse_coc_time(self, value: str | None):
         if not value:
             return None
@@ -150,6 +158,7 @@ class ClashPlayerInfoSensor(ClashPlayerBaseSensor):
         player = self._player
 
         return {
+            **super().extra_state_attributes,
             "league": player.get("leagueTier", {}).get("name"),
             "best_trophies": player.get("bestTrophies"),
             "experience_level": player.get("expLevel"),
@@ -277,7 +286,10 @@ class ClashTroopProgressionSensor(ClashPlayerBaseSensor):
             exclude_names=exclude_names,
             exclude_name_contains={"super"},
         )
-        return attrs
+        return {
+            **super().extra_state_attributes,
+            **attrs,
+        }
 
 
 class ClashSpellProgressionSensor(ClashPlayerBaseSensor):
@@ -298,7 +310,10 @@ class ClashSpellProgressionSensor(ClashPlayerBaseSensor):
     @property
     def extra_state_attributes(self):
         _value, attrs = self._progression("spells", village="home")
-        return attrs
+        return {
+            **super().extra_state_attributes,
+            **attrs,
+        }
 
 
 class ClashHeroProgressionSensor(ClashPlayerBaseSensor):
@@ -319,7 +334,10 @@ class ClashHeroProgressionSensor(ClashPlayerBaseSensor):
     @property
     def extra_state_attributes(self):
         _value, attrs = self._progression("heroes", village="home")
-        return attrs
+        return {
+            **super().extra_state_attributes,
+            **attrs,
+        }
 
 
 class ClashCurrentWarAttacksRemainingSensor(ClashPlayerBaseSensor):
