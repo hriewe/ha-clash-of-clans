@@ -28,6 +28,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 ClashCurrentWarEndTimeSensor(coordinator, player_tag),
                 ClashCurrentWarStartTimeSensor(coordinator, player_tag),
                 ClashCurrentWarStateSensor(coordinator, player_tag),
+                ClashCapitalRaidStateSensor(coordinator, player_tag),
+                ClashCapitalRaidAttacksCompletedSensor(coordinator, player_tag),
+                ClashCapitalRaidCapitalResourcesLootedSensor(coordinator, player_tag),
+                ClashCapitalRaidStartedAttacksSensor(coordinator, player_tag),
             ]
         )
 
@@ -60,6 +64,18 @@ class ClashPlayerBaseSensor(CoordinatorEntity, SensorEntity):
     @property
     def _war(self):
         return self.coordinator.data.get("wars", {}).get(self._player_tag) or {}
+
+    @property
+    def _capital_raid(self):
+        return self.coordinator.data.get("capital_raids", {}).get(self._player_tag) or {}
+
+    def _capital_raid_member(self):
+        raid = self._capital_raid
+        members = raid.get("members", []) if isinstance(raid, dict) else []
+        if not isinstance(members, list):
+            return None
+        member = next((m for m in members if isinstance(m, dict) and m.get("tag") == self._player_tag), None)
+        return member
 
     @property
     def extra_state_attributes(self):
@@ -414,3 +430,75 @@ class ClashCurrentWarStateSensor(ClashPlayerBaseSensor):
     @property
     def native_value(self):
         return self._war.get("state")
+
+
+class ClashCapitalRaidStateSensor(ClashPlayerBaseSensor):
+    _attr_name = "Capital Raid Status"
+    _attr_icon = "mdi:bank"
+
+    def __init__(self, coordinator, player_tag: str):
+        super().__init__(coordinator, player_tag)
+        self._attr_unique_id = f"{DOMAIN}_{player_tag}_capital_raid_status"
+
+    @property
+    def native_value(self):
+        raid = self._capital_raid
+        if not isinstance(raid, dict) or not raid:
+            return None
+        return raid.get("state")
+
+
+class ClashCapitalRaidAttacksCompletedSensor(ClashPlayerBaseSensor):
+    _attr_name = "Capital Raid Attacks Completed"
+    _attr_icon = "mdi:sword"
+    _attr_state_class = "measurement"
+
+    def __init__(self, coordinator, player_tag: str):
+        super().__init__(coordinator, player_tag)
+        self._attr_unique_id = f"{DOMAIN}_{player_tag}_capital_raid_attacks_completed"
+
+    @property
+    def native_value(self):
+        member = self._capital_raid_member()
+        if not member:
+            return 0
+        attacks = member.get("attacks")
+        if isinstance(attacks, int):
+            return attacks
+        return 0
+
+
+class ClashCapitalRaidCapitalResourcesLootedSensor(ClashPlayerBaseSensor):
+    _attr_name = "Capital Raid Capital Resources Looted"
+    _attr_icon = "mdi:treasure-chest"
+    _attr_state_class = "total_increasing"
+
+    def __init__(self, coordinator, player_tag: str):
+        super().__init__(coordinator, player_tag)
+        self._attr_unique_id = f"{DOMAIN}_{player_tag}_capital_raid_capital_resources_looted"
+
+    @property
+    def native_value(self):
+        member = self._capital_raid_member()
+        if not member:
+            return 0
+        looted = member.get("capitalResourcesLooted")
+        if isinstance(looted, int):
+            return looted
+        return 0
+
+
+class ClashCapitalRaidStartedAttacksSensor(ClashPlayerBaseSensor):
+    _attr_name = "Capital Raid Started Attacks"
+    _attr_icon = "mdi:checkbox-marked-circle-outline"
+
+    def __init__(self, coordinator, player_tag: str):
+        super().__init__(coordinator, player_tag)
+        self._attr_unique_id = f"{DOMAIN}_{player_tag}_capital_raid_started_attacks"
+
+    @property
+    def native_value(self):
+        raid = self._capital_raid
+        if not isinstance(raid, dict) or not raid:
+            return None
+        return self._capital_raid_member() is not None

@@ -40,6 +40,7 @@ class ClashOfClansCoordinator(DataUpdateCoordinator):
         try:
             players: dict[str, dict] = {}
             wars: dict[str, dict | None] = {}
+            capital_raids: dict[str, dict | None] = {}
 
             for player_tag in self.player_tags:
                 player = await self.api.get_player(player_tag)
@@ -56,9 +57,25 @@ class ClashOfClansCoordinator(DataUpdateCoordinator):
 
                 wars[player_tag] = war
 
+                raid_season = None
+                if clan_tag:
+                    try:
+                        raids = await self.api.get_capital_raid_seasons(clan_tag)
+                        items = raids.get("items") if isinstance(raids, dict) else None
+                        if isinstance(items, list) and items:
+                            first = items[0]
+                            if isinstance(first, dict):
+                                raid_season = first
+                    except aiohttp.ClientResponseError as err:
+                        if err.status not in (403, 404):
+                            raise
+
+                capital_raids[player_tag] = raid_season
+
             return {
                 "players": players,
                 "wars": wars,
+                "capital_raids": capital_raids,
             }
         except Exception as err:
             raise UpdateFailed(f"Error fetching Clash of Clans data: {err}") from err

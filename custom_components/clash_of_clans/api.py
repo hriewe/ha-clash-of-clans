@@ -24,3 +24,9 @@ class ClashOfClansApi:
         return await self._get(
             f"{API_BASE}/clans/{clan_tag}/currentwar"
         )
+
+    async def get_capital_raid_seasons(self, clan_tag):
+        clan_tag = clan_tag.replace("#", "%23")
+        return await self._get(
+            f"{API_BASE}/clans/{clan_tag}/capitalraidseasons"
+        )
