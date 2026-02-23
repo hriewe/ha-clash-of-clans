@@ -13,6 +13,7 @@ Custom Home Assistant integration for exposing Clash of Clans data from the offi
 - Easy to manage entities (One device per player tag)
 - Player trophies, town hall, league, and many other stats
 - Clan war state and timing
+- Capital Raid information (Never miss out on those sweet sweet raid medals again)
 - HACS compatible
 - UI configuration (no YAML)
 - Easy to create automations and scripts using the entities
